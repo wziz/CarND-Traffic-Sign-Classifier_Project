@@ -13,6 +13,7 @@
 [image6]: ./test_photos/idx_13.JPG "Traffic Sign 3"
 [image7]: ./test_photos/idx_18.JPG "Traffic Sign 4"
 [image8]: ./test_photos/idx_34.JPG "Traffic Sign 5"
+[image9]: ./examples/overfit.JPG "overfitting"
 
 [img2]: ./examples/visualization.jpg "Visualization"
 
@@ -39,6 +40,8 @@ Here is an exploratory visualization of the data set. It is a line chart showing
 ![alt text][img2]
 
 ### Design and Test a Model Architecture
+
+#### Pre-Processing
 
 To pre-processing the datasets I converted the images to grayscale using the opencv-function cv2.cvtColor. As the graphic characteristics and the word information of a traffic sign should be enough for a human to  recognize the meaning of the traffic sign. These information should also be enough for neural networks. Besides the RGB-Values of a color don't stay constant in different illuminations. So the color information might make the training harder.
 
@@ -74,7 +77,32 @@ def preprocessing_img(img_set, training_set=True, mean=None, var=None):
         return img_set_gray_scaled
 ```
 
-The architecture of my model is based on the LeNet which was introduced in this course. In addition to the LeNet, I added two dropout layers to avoid the over fitting. Without the dropout layers the accuray of validation set was much lower than the accuracy of training set, which indicated that the neural network is highly over fitted.
+#### Model Architecture
+
+The first architecture I tried was the original LeNet which was introduced in this course with a little adjustment of the number of input channels from 3 to 1. The model was as follow:
+
+|         Layer         |                        Description                         |
+|:---------------------:|:----------------------------------------------------------:|
+|         Input         |                     32x32x1 gray image                     |
+| Convolution 5x5     	 |        1x1 stride, valid padding, outputs 28x28x6 	        |
+|       RELU					       |                        												                        |
+|  Max pooling	      	  |             2x2 stride,  outputs 14x14x6 				              |
+|   Convolution 5x5	    | 1x1 stride, valid padding, outputs 10x10x16      									 |
+|         RELU          |                                                            |
+|      Max pooling      |                 2x2 stride, outputs 5x5x16                 |
+|        Flatten        |                         output 400                         |
+|   Fully connected		   |                         output 120                         |
+|         RELU          ||
+|    Fully connected    |                         output 84                          |
+|         RELU          ||
+|    Fully connected    |                         output 43                          |
+
+
+After running about 430 iterations, the model was trapped into overfitting (as shown in the picture below): the training accuracy was 100% while the validation accuracy was 94%. Although the accuracy of validation had reached the goal of 93%. but this had been done with cost of highly fitted training set, which means poor generalization to other samples set. 
+
+![alt text][image9]
+
+To fix this problem, I added two dropout layers to avoid the over fitting. Without the dropout layers the accuray of validation set was much lower than the accuracy of training set, which indicated that the neural network is highly over fitted.
 
 My final model consisted of the following layers:
 
@@ -144,8 +172,14 @@ def LeNet(x, keep_prob):
 
     return logits
 ```
+### Hyper-Parameters
+To train the model I used the mini-batch and Adam optimizer. As the Adam optimizer adjusts the learning steps according to the gradients in the past steps, trying this optimizer as first step is in my opinion a good choice.
 
-To train the model I used the mini-batch and Adam optimizer. To achieve a higher accuracy both on training set und validation set, I used the accuracy of both sets as condition to stop the training. For my model I set the accuracy of both sets to 95%. In this way, the neural network is enough trained and also not over fitted. 
+To achieve a higher accuracy both on training set und validation set, I used the accuracy of both sets as condition to stop the training. For my model I set the accuracy of both sets to 95%. In this way, the neural network is enough trained and also not over fitted. The model had achieved this goal after running 140 epochs (please refer the results of 46th cell of the Ipython notebook).
+
+Besides the number of epochs, the other hyper-parameters I used are as follow:
+* batch size: 128 --> as I have 34799 examples in the training set, the batch size of 128 turned to have ~280 iterations to go through the training set, which in my opinion a good balance of speed and stochastic.
+* learning rate: 0.001 --> it was a good start point for this model and training set. As the training achieved the goal really fast, I didn't used any learning-rate-optimization-methods such as learning-rate-decay to speed up the training.
 
 As results my model got:
 * training set accuracy of 99.9%
@@ -168,6 +202,8 @@ Here are five German traffic signs that I found on the web:
 ![alt text][image8]
 
 
+To increase the difficulty of the test with web images of traffic signs, I particularly choosed the traffic signs that were taken with some background disturbances, like the picture of priority road, yield. Pictures with noises were also chosen to this testing, like the picture of No passing for vehicle over 3.5t and the picture of general caution.
+
 Here are the results of the prediction:
 
 |                  Image			                   |     Prediction	        					| 
@@ -179,7 +215,7 @@ Here are the results of the prediction:
 |             Turn left ahead			              | Turn left ahead			|
 
 
-The Model got on these five images an accuracy of 100%. Actually the model got these results with high confidence:
+As the accuracy of test set is 94%, the Model got on these five images an even better accuracy of 100%. Actually the model got these results with high confidence:
 * the top 5 predictions and probabilities for the traffic sign "Priority Road":
   * Priority road, probility: 100.0%
   * End of all speed and passing limits, probility: 2.0944403361383548e-16%
